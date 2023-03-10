@@ -12,7 +12,7 @@ class UpSampleConv2D(torch.jit.ScriptModule):
         kernel_size=3,
         n_filters=128,
         upscale_factor=2,
-        padding=0,
+        padding=0
     ):
         super(UpSampleConv2D, self).__init__()
         # TODO 1.1: Setup the network layers
