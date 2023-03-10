@@ -29,10 +29,10 @@ def get_optimizers_and_schedulers(gen, disc):
     # The learning rate for the discriminator should be decayed to 0 over 500K iterations.
     # The learning rate for the generator should be decayed to 0 over 100K iterations.
     optim_discriminator = torch.optim.Adam(disc.parameters(), lr=0.0002, betas=(0.0, 0.9))
-    optim_generator = torch.optim.Adam(disc.parameters(), lr=0.0002, betas=(0.0, 0.9))
+    optim_generator = torch.optim.Adam(gen.parameters(), lr=0.0002, betas=(0.0, 0.9))
 
-    scheduler_discriminator = torch.optim.lr_scheduler.ConstantLR(optim_discriminator, factor=0.99, total_iters=500000)
-    scheduler_generator = torch.optim.lr_scheduler.ConstantLR(optim_generator, factor=0.99, total_iters=100000)
+    scheduler_discriminator = torch.optim.lr_scheduler.ConstantLR(optim_discriminator, factor=0.9, total_iters=500000)
+    scheduler_generator = torch.optim.lr_scheduler.ConstantLR(optim_generator, factor=0.9, total_iters=100000)
     
     return (
         optim_discriminator,
@@ -87,7 +87,7 @@ def train_model(
         scheduler_generator,
     ) = get_optimizers_and_schedulers(gen, disc)
 
-    scaler = torch.cuda.amp.GradScaler()
+    # scaler = torch.cuda.amp.GradScaler()
 
     iters = 0
     fids_list = []
@@ -109,17 +109,16 @@ def train_model(
                 discrim_interp = None
                 interp = None
                 discriminator_loss = disc_loss_fn(disc_train, disc_gen, discrim_interp, interp, lamb)
-                print("Descriminator Loss: ", discriminator_loss)
                 # generator_loss = gen_loss_fn()
 
                 # TODO: 1.5 Compute the interpolated batch and run the discriminator on it.
 
 
             optim_discriminator.zero_grad(set_to_none=True)
-            # discriminator_loss.backward()
-            # optim_discriminator.step()
-            scaler.scale(discriminator_loss).backward()
-            scaler.step(optim_discriminator)
+            discriminator_loss.backward()
+            optim_discriminator.step()
+            # scaler.scale(discriminator_loss).backward()
+            # scaler.step(optim_discriminator)
             scheduler_discriminator.step()
 
             if iters % 5 == 0:
@@ -128,12 +127,11 @@ def train_model(
                     gen_out = gen(batch_size)
                     disc_gen = disc(gen_out)
                     generator_loss = gen_loss_fn(disc_gen)
-                    print("Generator Loss: ", generator_loss)
                 optim_generator.zero_grad(set_to_none=True)
-                # generator_loss.backward()
-                # optim_generator.step()
-                scaler.scale(generator_loss).backward()
-                scaler.step(optim_generator)
+                generator_loss.backward()
+                optim_generator.step()
+                # scaler.scale(generator_loss).backward()
+                # scaler.step(optim_generator)
                 scheduler_generator.step()
 
             if iters % log_period == 0 and iters != 0:
@@ -180,7 +178,7 @@ def train_model(
                     interpolate_latent_space(
                         gen, prefix + "interpolations_{}.png".format(iters)
                     )
-            scaler.update()
+            # scaler.update()
             iters += 1
             pbar.update(1)
     fid = get_fid(

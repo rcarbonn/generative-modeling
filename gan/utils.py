@@ -2,6 +2,7 @@ import argparse
 import torch
 from cleanfid import fid
 from matplotlib import pyplot as plt
+import torchvision
 
 
 def save_plot(x, y, xlabel, ylabel, title, filename):
@@ -42,8 +43,8 @@ def interpolate_latent_space(gen, path):
     z2 = torch.FloatTensor(1,100).uniform_(-1,1)
     z_samples[:,0] = torch.linspace(-1,1,100)
     z_samples[:,1] = torch.linspace(-1,1,100)
-    interpolated_imgs = gen(z_samples)
-    torch.utils.save_image(interpolated_imgs.data.float(), path, nrow=10)
+    interpolated_imgs = gen.forward_given_samples(z_samples.cuda())
+    torchvision.utils.save_image(interpolated_imgs.data.float(), path, nrow=10)
 
 def get_args():
     parser = argparse.ArgumentParser()

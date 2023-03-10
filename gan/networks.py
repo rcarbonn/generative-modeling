@@ -55,7 +55,7 @@ class DownSampleConv2D(torch.jit.ScriptModule):
         # 3. Average across dimension 0, apply convolution and return output
         x = F.pixel_unshuffle(x, self.downscale_ratio)
         assert x.shape[1]%self.downscale_ratio==0
-        x = x.split(x.shape[1]//(self.downscale_ratio**2), 1)
+        x = x.split(int(x.shape[1]//(self.downscale_ratio**2)), 1)
         x = torch.stack(x)
         x = x.mean(0)
         x = self.conv(x)
@@ -155,7 +155,7 @@ class Generator(torch.jit.ScriptModule):
     @torch.jit.script_method
     def forward(self, n_samples: int = 1024):
         # TODO 1.1: Generate n_samples latents and forward through the network.
-        samples = torch.randn(n_samples, 128)
+        samples = torch.randn(n_samples, 128).cuda()
         return self.forward_given_samples(samples)
 
 
@@ -177,7 +177,7 @@ class Discriminator(torch.jit.ScriptModule):
     def forward(self, x):
         # TODO 1.1: Forward the discriminator assuming a batch of images have been passed in.
         # Make sure to sum across the image dimensions after passing x through self.layers.
-        x = self.layers(x)
+        x = self.layers(x.cuda())
         x = x.flatten(start_dim=2)
         x = x.sum(dim=2)
         return self.dense(x)
