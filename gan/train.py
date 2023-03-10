@@ -87,7 +87,7 @@ def train_model(
         scheduler_generator,
     ) = get_optimizers_and_schedulers(gen, disc)
 
-    # scaler = torch.cuda.amp.GradScaler()
+    scaler = torch.cuda.amp.GradScaler()
 
     iters = 0
     fids_list = []
@@ -95,7 +95,7 @@ def train_model(
     pbar = tqdm(total = num_iterations)
     while iters < num_iterations:
         for train_batch in train_loader:
-            with torch.cpu.amp.autocast(enabled=amp_enabled):
+            with torch.cuda.amp.autocast(enabled=amp_enabled):
                 train_batch = train_batch
                 ############################ UPDATE DISCRIMINATOR ######################################
                 # TODO 1.2: compute generator, discriminator and interpolated outputs
@@ -116,29 +116,29 @@ def train_model(
 
 
             optim_discriminator.zero_grad(set_to_none=True)
-            discriminator_loss.backward()
-            optim_discriminator.step()
-            # scaler.scale(discriminator_loss).backward()
-            # scaler.step(optim_discriminator)
+            # discriminator_loss.backward()
+            # optim_discriminator.step()
+            scaler.scale(discriminator_loss).backward()
+            scaler.step(optim_discriminator)
             scheduler_discriminator.step()
 
             if iters % 5 == 0:
-                with torch.cpu.amp.autocast(enabled=amp_enabled):
+                with torch.cuda.amp.autocast(enabled=amp_enabled):
                     # TODO 1.2: compute generator and discriminator output on generated data.
                     gen_out = gen(batch_size)
                     disc_gen = disc(gen_out)
                     generator_loss = gen_loss_fn(disc_gen)
                     print("Generator Loss: ", generator_loss)
                 optim_generator.zero_grad(set_to_none=True)
-                generator_loss.backward()
-                optim_generator.step()
-                # scaler.scale(generator_loss).backward()
-                # scaler.step(optim_generator)
+                # generator_loss.backward()
+                # optim_generator.step()
+                scaler.scale(generator_loss).backward()
+                scaler.step(optim_generator)
                 scheduler_generator.step()
 
             if iters % log_period == 0 and iters != 0:
                 with torch.no_grad():
-                    with torch.cpu.amp.autocast(enabled=amp_enabled):
+                    with torch.cuda.amp.autocast(enabled=amp_enabled):
                         # TODO 1.2: Generate samples using the generator, make sure they lie in the range [0, 1].
                         gen_samples = gen(100)
                         gen_samples_min,_ = gen_samples.view(100, 3, -1).min(dim=2)
@@ -180,7 +180,7 @@ def train_model(
                     interpolate_latent_space(
                         gen, prefix + "interpolations_{}.png".format(iters)
                     )
-            # scaler.update()
+            scaler.update()
             iters += 1
             pbar.update(1)
     fid = get_fid(
