@@ -21,9 +21,6 @@ def compute_discriminator_loss(
     # batch_sz_fake = discrim_fake.shape[0]
     sig_real = F.sigmoid(discrim_real)
     sig_fake = 1 - F.sigmoid(discrim_fake)
-    print(discrim_real.shape)
-    print(discrim_fake.shape)
-    print("sum of real sigmoids:", sig_real.sum())
     loss_real = -torch.log(sig_real).mean()
     loss_fake = -torch.log(sig_fake).mean()
     loss = loss_real + loss_fake
@@ -59,6 +56,6 @@ if __name__ == "__main__":
         prefix=prefix,
         gen_loss_fn=compute_generator_loss,
         disc_loss_fn=compute_discriminator_loss,
-        log_period=1000,
+        log_period=10,
         amp_enabled=not args.disable_amp,
     )

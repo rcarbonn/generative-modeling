@@ -37,10 +37,13 @@ def interpolate_latent_space(gen, path):
     # Forward the samples through the generator.
     # Save out an image holding all 100 samples.
     # Use torchvision.utils.save_image to save out the visualization.
-    z_sample = torch.zeros((100,128))
-    z_sample_first2 = z_sample[:,:2]
-    for i in range(10):
-        continue
+    z_samples = torch.zeros((100,128), dtype=torch.float32)
+    z1 = torch.FloatTensor(1,100).uniform_(-1,1)
+    z2 = torch.FloatTensor(1,100).uniform_(-1,1)
+    z_samples[:,0] = torch.linspace(-1,1,100)
+    z_samples[:,1] = torch.linspace(-1,1,100)
+    interpolated_imgs = gen(z_samples)
+    torch.utils.save_image(interpolated_imgs.data.float(), path, nrow=10)
 
 def get_args():
     parser = argparse.ArgumentParser()

@@ -140,10 +140,10 @@ def train_model(
                 with torch.no_grad():
                     with torch.cpu.amp.autocast(enabled=amp_enabled):
                         # TODO 1.2: Generate samples using the generator, make sure they lie in the range [0, 1].
-                        gen_samples = gen(64)
-                        gen_samples_min = gen_samples.view(64, 3, -1).min(dim=2)
+                        gen_samples = gen(100)
+                        gen_samples_min,_ = gen_samples.view(100, 3, -1).min(dim=2)
                         generated_samples = gen_samples - gen_samples_min.unsqueeze(-1).unsqueeze(-1)
-                        generated_samples_max  = generated_samples.view(64, 3, -1).max(dim=2)
+                        generated_samples_max,_  = generated_samples.view(100, 3, -1).max(dim=2)
                         generated_samples = generated_samples / generated_samples_max.unsqueeze(-1).unsqueeze(-1)
                         
                     save_image(
@@ -151,7 +151,7 @@ def train_model(
                         prefix + "samples_{}.png".format(iters),
                         nrow=10,
                     )
-                    if os.environ.get('PYTORCH_JIT', 1):
+                    if int(os.environ.get('PYTORCH_JIT', 1)):
                         torch.jit.save(torch.jit.script(gen), prefix + "/generator.pt")
                         torch.jit.save(torch.jit.script(disc), prefix + "/discriminator.pt")
                     else:
