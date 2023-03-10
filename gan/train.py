@@ -86,7 +86,7 @@ def train_model(
     while iters < num_iterations:
         for train_batch in train_loader:
             with torch.cuda.amp.autocast(enabled=amp_enabled):
-                train_batch = train_batch.cuda()
+                train_batch = train_batch
                 ############################ UPDATE DISCRIMINATOR ######################################
                 # TODO 1.2: compute generator, discriminator and interpolated outputs
                 # 1. Compute generator output -> the number of samples must match the batch size.
