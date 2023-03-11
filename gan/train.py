@@ -128,7 +128,8 @@ def train_model(
                     # TODO 1.2: compute generator and discriminator output on generated data.
                     gen_out = gen(batch_size)
                     disc_gen = disc(gen_out)
-                    generator_loss = gen_loss_fn(disc_gen)
+                    disc_gen_isolate = disc_gen.detach()
+                    generator_loss = gen_loss_fn(disc_gen_isolate)
                 optim_generator.zero_grad(set_to_none=True)
                 generator_loss.backward()
                 optim_generator.step()
@@ -141,10 +142,12 @@ def train_model(
                     with torch.cuda.amp.autocast(enabled=amp_enabled):
                         # TODO 1.2: Generate samples using the generator, make sure they lie in the range [0, 1].
                         gen_samples = gen(100)
-                        gen_samples_min,_ = gen_samples.view(100, 3, -1).min(dim=2)
-                        generated_samples = gen_samples - gen_samples_min.unsqueeze(-1).unsqueeze(-1)
-                        generated_samples_max,_  = generated_samples.view(100, 3, -1).max(dim=2)
-                        generated_samples = generated_samples / generated_samples_max.unsqueeze(-1).unsqueeze(-1)
+                        inv_norm = transforms.Normalize([-1.0,-1.0, -1.0], [2.0, 2.0, 2.0])
+                        # gen_samples_min,_ = gen_samples.view(100, 3, -1).min(dim=2)
+                        # generated_samples = gen_samples - gen_samples_min.unsqueeze(-1).unsqueeze(-1)
+                        # generated_samples_max,_  = generated_samples.view(100, 3, -1).max(dim=2)
+                        # generated_samples = generated_samples / generated_samples_max.unsqueeze(-1).unsqueeze(-1)
+                        generated_samples = inv_norm(gen_samples)
                         
                     save_image(
                         generated_samples.data.float(),
