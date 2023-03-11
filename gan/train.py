@@ -16,7 +16,7 @@ def build_transforms():
     # NOTE: don't do anything fancy for 2, hint: the input image is between 0 and 1.
     ds_transforms = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
+        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
     return ds_transforms
 
@@ -31,8 +31,10 @@ def get_optimizers_and_schedulers(gen, disc):
     optim_discriminator = torch.optim.Adam(disc.parameters(), lr=0.0002, betas=(0.0, 0.9))
     optim_generator = torch.optim.Adam(gen.parameters(), lr=0.0002, betas=(0.0, 0.9))
 
-    scheduler_discriminator = torch.optim.lr_scheduler.ConstantLR(optim_discriminator, factor=0.9, total_iters=500000)
-    scheduler_generator = torch.optim.lr_scheduler.ConstantLR(optim_generator, factor=0.9, total_iters=100000)
+    # scheduler_discriminator = torch.optim.lr_scheduler.ConstantLR(optim_discriminator, factor=0.9, total_iters=500000)
+    # scheduler_generator = torch.optim.lr_scheduler.ConstantLR(optim_generator, factor=0.9, total_iters=100000)
+    scheduler_discriminator = torch.optim.lr_scheduler.StepLR(optim_discriminator, step_size=1, gamma=0.9999)
+    scheduler_generator = torch.optim.lr_scheduler.StepLR(optim_generator, step_size=1, gamma=0.9995)
     
     return (
         optim_discriminator,

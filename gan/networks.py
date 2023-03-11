@@ -156,6 +156,7 @@ class Generator(torch.jit.ScriptModule):
     def forward(self, n_samples: int = 1024):
         # TODO 1.1: Generate n_samples latents and forward through the network.
         samples = torch.randn(n_samples, 128).cuda()
+        # samples = torch.FloatTensor(n_samples, 128).uniform_(-1.0, 1.0).cuda()
         return self.forward_given_samples(samples)
 
 
