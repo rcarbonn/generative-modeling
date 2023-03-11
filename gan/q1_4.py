@@ -15,6 +15,9 @@ def compute_discriminator_loss(
     TODO 1.4.1: Implement LSGAN loss for discriminator.
     Do not use discrim_interp, interp, lamb. They are placeholders for Q1.5.
     """
+    loss_real = torch.square(F.sigmoid(discrim_real)-1).mean()/2
+    loss_fake = torch.square(F.sigmoid(discrim_fake)).mean()/2
+    loss = loss_real + loss_fake
     return loss
 
 
@@ -22,6 +25,7 @@ def compute_generator_loss(discrim_fake):
     """
     TODO 1.4.1: Implement LSGAN loss for generator.
     """
+    loss = torch.square(F.sigmoid(discrim_fake)-1).mean()/2
     return loss
 
 if __name__ == "__main__":
