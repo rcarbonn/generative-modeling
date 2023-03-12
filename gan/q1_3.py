@@ -16,30 +16,27 @@ def compute_discriminator_loss(
     TODO 1.3.1: Implement GAN loss for discriminator.
     Do not use discrim_interp, interp, lamb. They are placeholders for Q1.5.
     """
-    criterion = torch.nn.BCEWithLogitsLoss()
-    # batch_sz_real = discrim_real.shape[0]
-    # batch_sz_fake = discrim_fake.shape[0]
-    # sig_real = F.sigmoid(discrim_real)
-    # sig_fake = 1 - F.sigmoid(discrim_fake)
-    # loss_real = -torch.log(sig_real).mean()
-    # loss_fake = -torch.log(sig_fake).mean()
-    loss_real = criterion(discrim_real, torch.ones_like(discrim_real))
-    loss_fake = criterion(discrim_fake, torch.zeros_like(discrim_fake))
+    # criterion = torch.nn.BCEWithLogitsLoss()
+    # loss_real = criterion(discrim_real, torch.ones_like(discrim_real))
+    # loss_fake = criterion(discrim_fake, torch.zeros_like(discrim_fake))
+    sig_real = torch.sigmoid(discrim_real) + 1e-6
+    sig_fake = 1 - torch.sigmoid(discrim_fake) + 1e-6
+    loss_real = -torch.log(sig_real)
+    loss_fake = -torch.log(sig_fake)
     loss = loss_real + loss_fake
 
-    return loss
+    return loss.mean()
 
 
 def compute_generator_loss(discrim_fake):
     """
     TODO 1.3.1: Implement GAN loss for generator.
     """
-    # batch_sz_fake = discrim_fake
-    # sig_fake = 1-F.sigmoid(discrim_fake)
-    criterion = torch.nn.BCEWithLogitsLoss()
-    loss = criterion(discrim_fake, torch.ones_like(discrim_fake))
+    # criterion = torch.nn.BCEWithLogitsLoss()
+    # loss = criterion(discrim_fake, torch.ones_like(discrim_fake))
+    sig_fake = 1-torch.sigmoid(discrim_fake) + 1e-6
     # loss = (-1*torch.log(sig_fake)/batch_sz_fake).sum()
-    # loss = -1*torch.log(sig_fake).mean()
+    loss = torch.log(sig_fake).mean()
 
     return loss
 

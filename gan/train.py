@@ -31,10 +31,19 @@ def get_optimizers_and_schedulers(gen, disc):
     optim_discriminator = torch.optim.Adam(disc.parameters(), lr=0.0002, betas=(0.0, 0.9))
     optim_generator = torch.optim.Adam(gen.parameters(), lr=0.0002, betas=(0.0, 0.9))
 
+    # Try constant LR (doesnt work)
     # scheduler_discriminator = torch.optim.lr_scheduler.ConstantLR(optim_discriminator, factor=0.9, total_iters=500000)
     # scheduler_generator = torch.optim.lr_scheduler.ConstantLR(optim_generator, factor=0.9, total_iters=100000)
-    scheduler_discriminator = torch.optim.lr_scheduler.StepLR(optim_discriminator, step_size=1, gamma=0.9999)
-    scheduler_generator = torch.optim.lr_scheduler.StepLR(optim_generator, step_size=1, gamma=0.9995)
+
+    # Try Step LR (doesnt work)
+    # scheduler_discriminator = torch.optim.lr_scheduler.StepLR(optim_discriminator, step_size=1, gamma=0.9999)
+    # scheduler_generator = torch.optim.lr_scheduler.StepLR(optim_generator, step_size=1, gamma=0.9995)
+
+    lr_disc = lambda iter: 1 - (iter/500000)
+    lr_gen = lambda iter: 1 - (iter/100000)
+    scheduler_discriminator = torch.optim.lr_scheduler.LambdaLR(optim_discriminator, lr_lambda=lr_disc)
+    scheduler_generator = torch.optim.lr_scheduler.LambdaLR(optim_generator, lr_lambda=lr_gen)
+
     
     return (
         optim_discriminator,
@@ -104,14 +113,13 @@ def train_model(
                 # 1. Compute generator output -> the number of samples must match the batch size.
                 # 2. Compute discriminator output on the train batch.
                 # 3. Compute the discriminator output on the generated data.
-                gen_out = gen(batch_size)
+                gen_out = gen(train_batch.shape[0])
                 disc_train = disc(train_batch)
                 gen_out_isolate = gen_out.detach()
                 disc_gen = disc(gen_out_isolate)
                 discrim_interp = None
                 interp = None
                 discriminator_loss = disc_loss_fn(disc_train, disc_gen, discrim_interp, interp, lamb)
-                # generator_loss = gen_loss_fn()
 
                 # TODO: 1.5 Compute the interpolated batch and run the discriminator on it.
 
@@ -126,10 +134,10 @@ def train_model(
             if iters % 5 == 0:
                 with torch.cuda.amp.autocast(enabled=amp_enabled):
                     # TODO 1.2: compute generator and discriminator output on generated data.
-                    gen_out = gen(batch_size)
+                    # no need to recompute gen data
+                    # gen_out = gen(train_batch.shape[0])
                     disc_gen = disc(gen_out)
-                    disc_gen_isolate = disc_gen.detach()
-                    generator_loss = gen_loss_fn(disc_gen_isolate)
+                    generator_loss = gen_loss_fn(disc_gen)
                 optim_generator.zero_grad(set_to_none=True)
                 generator_loss.backward()
                 optim_generator.step()
@@ -142,12 +150,15 @@ def train_model(
                     with torch.cuda.amp.autocast(enabled=amp_enabled):
                         # TODO 1.2: Generate samples using the generator, make sure they lie in the range [0, 1].
                         gen_samples = gen(100)
+
+                        # do an inverse norm, add 1 and divide by 2
                         inv_norm = transforms.Normalize([-1.0,-1.0, -1.0], [2.0, 2.0, 2.0])
+                        generated_samples = inv_norm(gen_samples)
+
                         # gen_samples_min,_ = gen_samples.view(100, 3, -1).min(dim=2)
                         # generated_samples = gen_samples - gen_samples_min.unsqueeze(-1).unsqueeze(-1)
                         # generated_samples_max,_  = generated_samples.view(100, 3, -1).max(dim=2)
                         # generated_samples = generated_samples / generated_samples_max.unsqueeze(-1).unsqueeze(-1)
-                        generated_samples = inv_norm(gen_samples)
                         
                     save_image(
                         generated_samples.data.float(),

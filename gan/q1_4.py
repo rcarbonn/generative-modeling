@@ -19,9 +19,11 @@ def compute_discriminator_loss(
     # loss_fake = torch.square(F.sigmoid(discrim_fake)).mean()/2
     # loss = loss_real + loss_fake
     criterion = torch.nn.MSELoss()
-    loss_real = criterion(F.sigmoid(discrim_real), torch.ones_like(discrim_real))
-    loss_fake = criterion(F.sigmoid(discrim_fake), torch.zeros_like(discrim_real))
-    loss = (loss_real + loss_fake) / 2
+    valid = torch.autograd.Variable(torch.cuda.FloatTensor(discrim_real.shape[0],1).fill_(1.0), requires_grad=False)
+    fake = torch.autograd.Variable(torch.cuda.FloatTensor(discrim_fake.shape[0],1).fill_(0.0), requires_grad=False)
+    loss_real = criterion(discrim_real, valid)
+    loss_fake = criterion(discrim_fake, fake)
+    loss = (loss_real + loss_fake) * 0.5
     return loss
 
 
@@ -31,8 +33,8 @@ def compute_generator_loss(discrim_fake):
     """
     # loss = torch.square(F.sigmoid(discrim_fake)-1).mean()/2
     criterion = torch.nn.MSELoss()
-    loss = criterion(F.sigmoid(discrim_fake), torch.ones_like(discrim_fake))
-    loss = loss/2
+    valid = torch.autograd.Variable(torch.cuda.FloatTensor(discrim_fake.shape[0],1).fill_(1.0), requires_grad=False)
+    loss = criterion(discrim_fake, valid)
     return loss
 
 if __name__ == "__main__":
