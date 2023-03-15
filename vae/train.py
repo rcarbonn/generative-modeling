@@ -45,7 +45,7 @@ def vae_loss(model, x, beta = 1):
 
     kl_loss = 0.5 * (torch.square(mu).sum(dim=1) + torch.square(log_sig).sum(dim=1) - (torch.log(torch.square(log_sig)+1e-6)+1).sum(dim=1)).sum(dim=0)
     kl_loss = kl_loss / x.shape[0]
-    total_loss = recon_loss + kl_loss
+    total_loss = recon_loss + beta * kl_loss
 
     return total_loss, OrderedDict(recon_loss=recon_loss, kl_loss=kl_loss)
 
@@ -61,7 +61,8 @@ def linear_beta_scheduler(max_epochs=None, target_val = 1):
     from 0 at epoch 0 to target_val at epoch max_epochs
     """
     def _helper(epoch):
-        return _helper
+        return (epoch/(max_epochs-1))*target_val
+    return _helper
 
 def run_train_epoch(model, loss_mode, train_loader, optimizer, beta = 1, grad_clip = 1):
     model.train()
