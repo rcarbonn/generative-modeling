@@ -19,6 +19,12 @@ def ae_loss(model, x):
     TODO 2.2: fill in MSE loss between x and its reconstruction.
     return loss, {recon_loss = loss}
     """
+    enc = model.encoder(x)
+    recon = model.decoder(enc)
+
+    criterion = nn.MSELoss(reduction='sum')
+    loss = criterion(x, recon)
+    loss = loss / x.shape[0]
 
     return loss, OrderedDict(recon_loss=loss)
 
@@ -43,7 +49,7 @@ def linear_beta_scheduler(max_epochs=None, target_val = 1):
     from 0 at epoch 0 to target_val at epoch max_epochs
     """
     def _helper(epoch):
-    return _helper
+        return _helper
 
 def run_train_epoch(model, loss_mode, train_loader, optimizer, beta = 1, grad_clip = 1):
     model.train()
@@ -117,7 +123,7 @@ def main(log_dir, loss_mode = 'vae', beta_mode = 'constant', num_epochs = 20, ba
                 vis_samples(model, 'data/'+log_dir+ '/epoch_'+str(epoch) )
     for k,v in plot_metrics.items():
         plt.clf()
-        save_plot(list(range(len(v))), v, "Epochs", k, "{k} vs. Epochs", 'data/' + log_dir + f'/{k}_vs_iterations')
+        save_plot(list(range(len(v))), v, "Epochs", k, f"{k} vs. Epochs", 'data/' + log_dir + f'/{k}_vs_iterations')
 
 if __name__ == '__main__':
     # argparser:
@@ -130,5 +136,5 @@ if __name__ == '__main__':
 
 
     args = parser.parse_args()
-
+    torch.backends.cudnn.enabled=False
     main(args.log_dir, loss_mode = args.loss_mode, beta_mode = args.beta_mode, latent_size = args.latent_size, num_epochs=20, target_beta_val = args.target_beta_val)
