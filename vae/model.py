@@ -46,10 +46,17 @@ class VAEEncoder(Encoder):
     def __init__(self, input_shape, latent_dim):
         super().__init__(input_shape, latent_dim)
         #TODO 2.4: fill in self.fc, such that output dimension is 2*self.latent_dim
+        self.input_shape = input_shape
+        self.latent_dim = latent_dim
+        self.fc = nn.Linear(in_features=256*4*4, out_features=2*self.latent_dim)
 
     def forward(self, x):
         #TODO 2.4: forward pass through the network.
         # should return a tuple of 2 tensors, mu and log_std
+        x = self.convs(x)
+        x = x.view(x.shape[0], -1)
+        x = self.fc(x)
+        (mu, log_std) = x.split(self.latent_dim, dim=1)
         return mu, log_std
 
 

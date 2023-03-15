@@ -35,6 +35,18 @@ def vae_loss(model, x, beta = 1):
     (https://stats.stackexchange.com/questions/318748/deriving-the-kl-divergence-loss-for-vaes).
     return loss, {recon_loss = loss}
     """
+    criterion1 = nn.MSELoss(reduction='sum')
+    mu, log_sig = model.encoder(x)
+    eps = torch.randn_like(mu)
+    z = mu + eps*log_sig
+    recon = model.decoder(z)
+    recon_loss = criterion1(x, recon)
+    recon_loss = recon_loss / x.shape[0]
+
+    kl_loss = 0.5 * (torch.square(mu).sum(dim=1) + torch.square(log_sig).sum(dim=1) - (torch.log(torch.square(log_sig)+1e-6)+1).sum(dim=1)).sum(dim=0)
+    kl_loss = kl_loss / x.shape[0]
+    total_loss = recon_loss + kl_loss
+
     return total_loss, OrderedDict(recon_loss=recon_loss, kl_loss=kl_loss)
 
 
@@ -136,5 +148,4 @@ if __name__ == '__main__':
 
 
     args = parser.parse_args()
-    torch.backends.cudnn.enabled=False
     main(args.log_dir, loss_mode = args.loss_mode, beta_mode = args.beta_mode, latent_size = args.latent_size, num_epochs=20, target_beta_val = args.target_beta_val)
