@@ -13,7 +13,7 @@ def get_fid(gen, dataset_name, dataset_resolution, z_dimension, batch_size, num_
     # NOTE: the output must be [0, 255]
     def gen_fn(z):
         b_size, z_dim = z.shape
-        
+        z = z.reshape(b_size, 3, dataset_resolution, dataset_resolution)
         return gen.sample_given_z(z, (b_size, 3, dataset_resolution, dataset_resolution))*255
 
     score = cleanfid.compute_fid(
@@ -77,5 +77,5 @@ if __name__ == "__main__":
         )
         if args.compute_fid:
             # NOTE: This will take a very long time to run even though we are only doing 10K samples.
-            score = get_fid(diffusion, "cifar10", 32, 32*32*3, batch_size=256, num_gen=100)
+            score = get_fid(diffusion, "cifar10", 32, 32*32*3, batch_size=256, num_gen=10000)
             print("FID: ", score)

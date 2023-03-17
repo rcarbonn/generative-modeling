@@ -138,7 +138,6 @@ class DiffusionModel(nn.Module):
 
         times = self.sample_times(total_timesteps, sampling_timesteps)
         time_pairs = self.get_time_pairs(times)
-        print(time_pairs)
 
         img = z
         for tau_i, tau_isub1 in tqdm(time_pairs, desc='sampling loop time step'):
