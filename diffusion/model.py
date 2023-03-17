@@ -30,7 +30,7 @@ class DiffusionModel(nn.Module):
 
         alphas = 1. - self.betas
         # TODO 3.1: compute the cumulative products for current and previous timesteps
-        self.alphas_cumprod = torch.cumprod(alphas)
+        self.alphas_cumprod = torch.cumprod(alphas, 0)
         self.alphas_cumprod_prev =  self.alphas_cumprod / alphas
 
         # TODO 3.1: pre-compute values needed for forward process
@@ -43,7 +43,7 @@ class DiffusionModel(nn.Module):
         # This is coefficient of x_0 in the DDPM section
         self.posterior_mean_coef1 = torch.sqrt(self.alphas_cumprod_prev) * self.betas / (1-self.alphas_cumprod)
         # This is coefficient of x_t in the DDPM section
-        self.posterior_mean_coef2 = torch.sqrt(self.alphas_cumprod) * (1 - self.alphas_cumprod_prev) / (1 - self.alphas_cumprod)
+        self.posterior_mean_coef2 = torch.sqrt(alphas) * (1 - self.alphas_cumprod_prev) / (1 - self.alphas_cumprod)
 
         # TODO 3.1: compute posterior variance
         # calculations for posterior q(x_{t-1} | x_t, x_0) in DDPM
@@ -62,9 +62,9 @@ class DiffusionModel(nn.Module):
         # TODO 3.1: Compute the posterior mean and variance for x_{t-1}
         # using the coefficients, x_t, and x_0
         # hint: can use extract function from utils.py
-        posterior_mean = extract(self.posterior_mean_coef2, t, (1,1)) * x_t + extract(self.posterior_mean_coef1, t, (1,1)) * x_0
-        posterior_variance = torch.sqrt(extract(self.posterior_variance, t, (1,1)))
-        posterior_log_variance_clipped = torch.sqrt(extract(self.posterior_log_variance_clipped, t, (1,1)))
+        posterior_mean = extract(self.posterior_mean_coef2, t, x_t.shape) * x_t + extract(self.posterior_mean_coef1, t, x_0.shape) * x_0
+        posterior_variance = torch.sqrt(extract(self.posterior_variance, t, x_t.shape))
+        posterior_log_variance_clipped = torch.sqrt(extract(self.posterior_log_variance_clipped, t, x_t.shape))
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
 
     def model_predictions(self, x_t, t):
@@ -73,7 +73,7 @@ class DiffusionModel(nn.Module):
         # Hint: You can use extract function from utils.py.
         # clamp x_0 to [-1, 1]
         pred_noise = self.model(x_t, t)
-        x_0 = self.x_0_pred_coef_1 * x_t + self.x_0_pred_coef_2 * pred_noise
+        x_0 = extract(self.x_0_pred_coef_1, t, x_t.shape) * x_t + extract(self.x_0_pred_coef_2, t, x_t.shape) * pred_noise
         x_0 = torch.clamp(x_0, -1.0, 1.0)
         return (pred_noise, x_0)
 
@@ -98,11 +98,14 @@ class DiffusionModel(nn.Module):
 
     def sample_times(self, total_timesteps, sampling_timesteps):
         # TODO 3.2: Generate a list of times to sample from.
-        pass
+        step_size = total_timesteps // sampling_timesteps
+        # sampled_times = list(range(total_timesteps, 0, -1*step_size+1))
+        sampled_times = list(range(0, total_timesteps, step_size))[::-1]
+        return sampled_times
 
     def get_time_pairs(self, times):
         # TODO 3.2: Generate a list of adjacent time pairs to sample from.
-        pass
+        return list(zip(times[:-1], times[1:]))
 
     def ddim_step(self, batch, device, tau_i, tau_isub1, img, model_predictions, alphas_cumprod, eta):
         # TODO 3.2: Compute the output image for a single step of the DDIM sampling process.
@@ -117,6 +120,16 @@ class DiffusionModel(nn.Module):
 
         # sample from q(x_{\tau_{i - 1}} | x_{\tau_t}, x_0)
         # HINT: use the reparameterization trick
+        t = torch.full((batch,), tau_i, device=device, dtype=torch.long)
+        t1 = torch.full((batch,), tau_isub1, device=device, dtype=torch.long)
+        pred_noise, x_0 = model_predictions(img, t)
+        alpha_tau_i1 = extract(alphas_cumprod, t1, img.shape)
+        alpha_tau_i = extract(alphas_cumprod, t, img.shape)
+        sigma_tau_i = torch.sqrt(eta * (1 - alpha_tau_i1)/(1 - alpha_tau_i) * self.betas[tau_isub1])
+        coeff_eps_tau_i = torch.sqrt(1-alpha_tau_i1 - torch.square(sigma_tau_i))
+
+        mean_tau_i = torch.sqrt(alpha_tau_i1) * x_0 + coeff_eps_tau_i * pred_noise
+        img = mean_tau_i + sigma_tau_i * torch.randn_like(img)
 
         return img, x_0
 
@@ -125,6 +138,7 @@ class DiffusionModel(nn.Module):
 
         times = self.sample_times(total_timesteps, sampling_timesteps)
         time_pairs = self.get_time_pairs(times)
+        print(time_pairs)
 
         img = z
         for tau_i, tau_isub1 in tqdm(time_pairs, desc='sampling loop time step'):
@@ -142,4 +156,5 @@ class DiffusionModel(nn.Module):
     @torch.no_grad()
     def sample_given_z(self, z, shape):
         #TODO 3.3: fill out based on the sample function above
-        pass
+        sample_fn = self.sample_ddpm if not self.is_ddim_sampling else self.sample_ddim
+        return sample_fn(shape, z)
