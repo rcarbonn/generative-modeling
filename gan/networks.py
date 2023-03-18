@@ -56,7 +56,11 @@ class DownSampleConv2D(torch.jit.ScriptModule):
         x = F.pixel_unshuffle(x, self.downscale_ratio)
         assert x.shape[1]%self.downscale_ratio==0
         x = x.split(int(x.shape[1]//(self.downscale_ratio**2)), 1)
-        x = torch.stack(x)
+        x_ = [t.unsqueeze(0) for t in x]
+        # x = torch.stack(x)
+        # print(x.shape)
+        x = torch.vstack(x_)
+        del(x_)
         x = x.mean(0)
         x = self.conv(x)
         return x

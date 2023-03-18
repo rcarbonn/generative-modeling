@@ -107,7 +107,7 @@ def train_model(
     while iters < num_iterations:
         for train_batch in train_loader:
             with torch.cuda.amp.autocast(enabled=amp_enabled):
-                train_batch = train_batch
+                train_batch = train_batch.cuda()
                 ############################ UPDATE DISCRIMINATOR ######################################
                 # TODO 1.2: compute generator, discriminator and interpolated outputs
                 # 1. Compute generator output -> the number of samples must match the batch size.
@@ -116,13 +116,15 @@ def train_model(
                 gen_out = gen(train_batch.shape[0])
                 gen_out_isolate = gen_out.detach()
                 disc_gen = disc(gen_out_isolate)
-                eps = torch.rand(1)
+                disc_train = disc(train_batch)
+                eps = torch.rand(train_batch.shape[0],1,1,1).cuda()
 
                 # TODO: 1.5 Compute the interpolated batch and run the discriminator on it.
-                interp = eps*train_batch + (1-eps)*gen_out_isolate.requires_grad_()
+                gen_out2 = gen(train_batch.shape[0])
+                interp = eps*train_batch + (1-eps)*gen_out2
                 discrim_interp = disc(interp)
-                disc_train = disc(train_batch)
-                discriminator_loss = disc_loss_fn(disc_train, disc_gen, discrim_interp, interp, lamb)
+                discriminator_loss = disc_loss_fn(disc_train, disc_gen, discrim_interp.requires_grad_(), interp, lamb)
+                print("Disc Loss: ", discriminator_loss.item())
 
 
             optim_discriminator.zero_grad(set_to_none=True)
@@ -136,9 +138,10 @@ def train_model(
                 with torch.cuda.amp.autocast(enabled=amp_enabled):
                     # TODO 1.2: compute generator and discriminator output on generated data.
                     # no need to recompute gen data
-                    # gen_out = gen(train_batch.shape[0])
+                    gen_out = gen(train_batch.shape[0])
                     disc_gen = disc(gen_out)
                     generator_loss = gen_loss_fn(disc_gen)
+                    print("Gen Loss: ", generator_loss.item())
                 optim_generator.zero_grad(set_to_none=True)
                 generator_loss.backward()
                 optim_generator.step()
