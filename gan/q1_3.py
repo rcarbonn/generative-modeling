@@ -16,13 +16,28 @@ def compute_discriminator_loss(
     TODO 1.3.1: Implement GAN loss for discriminator.
     Do not use discrim_interp, interp, lamb. They are placeholders for Q1.5.
     """
-    return loss
+    # criterion = torch.nn.BCEWithLogitsLoss()
+    # loss_real = criterion(discrim_real, torch.ones_like(discrim_real))
+    # loss_fake = criterion(discrim_fake, torch.zeros_like(discrim_fake))
+    sig_real = torch.sigmoid(discrim_real) + 1e-6
+    sig_fake = 1 - torch.sigmoid(discrim_fake) + 1e-6
+    loss_real = -torch.log(sig_real)
+    loss_fake = -torch.log(sig_fake)
+    loss = loss_real + loss_fake
+
+    return loss.mean()
 
 
 def compute_generator_loss(discrim_fake):
     """
     TODO 1.3.1: Implement GAN loss for generator.
     """
+    # criterion = torch.nn.BCEWithLogitsLoss()
+    # loss = criterion(discrim_fake, torch.ones_like(discrim_fake))
+    sig_fake = 1-torch.sigmoid(discrim_fake) + 1e-6
+    # loss = (-1*torch.log(sig_fake)/batch_sz_fake).sum()
+    loss = torch.log(sig_fake).mean()
+
     return loss
 
 
