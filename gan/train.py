@@ -88,7 +88,7 @@ def train_model(
         batch_size=batch_size,
         shuffle=True,
         num_workers=4,
-        pin_memory=True,
+        pin_memory=False,
     )
 
     (
@@ -98,7 +98,7 @@ def train_model(
         scheduler_generator,
     ) = get_optimizers_and_schedulers(gen, disc)
 
-    # scaler = torch.cuda.amp.GradScaler()
+    scaler = torch.cuda.amp.GradScaler()
 
     iters = 0
     fids_list = []
@@ -128,10 +128,10 @@ def train_model(
 
 
             optim_discriminator.zero_grad(set_to_none=True)
-            discriminator_loss.backward()
-            optim_discriminator.step()
-            # scaler.scale(discriminator_loss).backward()
-            # scaler.step(optim_discriminator)
+            # discriminator_loss.backward()
+            # optim_discriminator.step()
+            scaler.scale(discriminator_loss).backward()
+            scaler.step(optim_discriminator)
             scheduler_discriminator.step()
 
             if iters % 5 == 0:
@@ -143,10 +143,10 @@ def train_model(
                     generator_loss = gen_loss_fn(disc_gen)
                     print("Gen Loss: ", generator_loss.item())
                 optim_generator.zero_grad(set_to_none=True)
-                generator_loss.backward()
-                optim_generator.step()
-                # scaler.scale(generator_loss).backward()
-                # scaler.step(optim_generator)
+                # generator_loss.backward()
+                # optim_generator.step()
+                scaler.scale(generator_loss).backward()
+                scaler.step(optim_generator)
                 scheduler_generator.step()
 
             if iters % log_period == 0 and iters != 0:
@@ -198,7 +198,7 @@ def train_model(
                     interpolate_latent_space(
                         gen, prefix + "interpolations_{}.png".format(iters)
                     )
-            # scaler.update()
+            scaler.update()
             iters += 1
             pbar.update(1)
     fid = get_fid(
