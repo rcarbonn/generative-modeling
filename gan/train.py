@@ -114,14 +114,15 @@ def train_model(
                 # 2. Compute discriminator output on the train batch.
                 # 3. Compute the discriminator output on the generated data.
                 gen_out = gen(train_batch.shape[0])
-                disc_train = disc(train_batch)
                 gen_out_isolate = gen_out.detach()
                 disc_gen = disc(gen_out_isolate)
-                discrim_interp = None
-                interp = None
-                discriminator_loss = disc_loss_fn(disc_train, disc_gen, discrim_interp, interp, lamb)
+                eps = torch.rand(1)
 
                 # TODO: 1.5 Compute the interpolated batch and run the discriminator on it.
+                interp = eps*train_batch + (1-eps)*gen_out_isolate.requires_grad_()
+                discrim_interp = disc(interp)
+                disc_train = disc(train_batch)
+                discriminator_loss = disc_loss_fn(disc_train, disc_gen, discrim_interp, interp, lamb)
 
 
             optim_discriminator.zero_grad(set_to_none=True)
